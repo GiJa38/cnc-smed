@@ -2,8 +2,10 @@
 <html lang="lt">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
     <title>CNC DERINIMO SMED</title>
+    <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -440,6 +442,17 @@
         </div>
     </div>
 
+    <div class="panel time-comparison" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 30px; max-width: fit-content; margin: 20px auto 0 auto; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); padding: 15px 40px; border-radius: 16px;">
+        <div class="form-group" style="text-align: center; border-right: 1px solid rgba(59, 130, 246, 0.3); padding-right: 30px;">
+            <label style="font-size: 0.9rem; color: #93c5fd; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Sutaupymo potencialas</label>
+            <input type="text" id="info-saved-time" readonly placeholder="00:00" style="font-size: 2rem; font-weight: 700; text-align: center; margin-top: 5px; color: #93c5fd; background: transparent; border: none; box-shadow: none; font-variant-numeric: tabular-nums; width: 150px; outline: none;">
+        </div>
+        <div class="form-group" style="text-align: center;">
+            <label style="font-size: 0.9rem; color: #a78bfa; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Idealus laikas (To-Be)</label>
+            <input type="text" id="info-ideal-time" readonly placeholder="00:00" style="font-size: 2rem; font-weight: 700; text-align: center; margin-top: 5px; color: #a78bfa; background: transparent; border: none; box-shadow: none; font-variant-numeric: tabular-nums; width: 150px; outline: none;">
+        </div>
+    </div>
+
     <div class="panel action-tracker">
         <div class="action-inputs">
             <div class="form-group" style="margin-bottom: 15px;">
@@ -545,6 +558,22 @@
         <div class="form-group" style="margin-bottom: 10px;">
             <label>Trukmė (sekundėmis)</label>
             <input type="number" id="edit-duration">
+        </div>
+        <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); margin-bottom: 15px;">
+            <h3 style="font-size: 0.95rem; margin-bottom: 10px; color: #93c5fd;">🚀 SMED Patobulinimas</h3>
+            <div class="form-group" style="margin-bottom: 10px;">
+                <label>Ką darome su šiuo veiksmu?</label>
+                <select id="edit-improvement">
+                    <option value="Nieko">⚪ Palikti kaip yra</option>
+                    <option value="Konvertuoti">🔄 Konvertuoti iš Vidinio į Išorinį</option>
+                    <option value="Optimizuoti">⚡ Optimizuoti (Sumažinti Mudą)</option>
+                    <option value="Pašalinti">❌ Pašalinti visiškai</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Galimas sutaupymas (sekundėmis)</label>
+                <input type="number" id="edit-saved-time" value="0">
+            </div>
         </div>
         <div class="form-group" style="margin-bottom: 20px;">
             <label>Pastabos</label>
@@ -695,11 +724,14 @@
         let internal = 0;
         let external = 0;
         let unknown = 0;
+        let totalSaved = 0;
         
         actions.forEach(a => {
             if (a.type === 'Vidinė') internal += a.duration;
             else if (a.type === 'Išorinė') external += a.duration;
             else unknown += a.duration;
+
+            if (a.savedTime) totalSaved += parseInt(a.savedTime, 10);
         });
 
         document.getElementById('sum-internal').textContent = formatTime(internal);
@@ -707,6 +739,10 @@
         const total = internal + external + unknown;
         document.getElementById('sum-total').textContent = formatTime(total);
         document.getElementById('info-real-time').value = formatTime(total);
+
+        document.getElementById('info-saved-time').value = formatTime(totalSaved);
+        const idealTime = Math.max(0, total - totalSaved);
+        document.getElementById('info-ideal-time').value = formatTime(idealTime);
 
         // Calculate Difference
         const targetInput = document.getElementById('info-target-time').value;
@@ -718,13 +754,11 @@
             const diff = total - targetSeconds;
             
             if (diff > 0) {
-                // Virsijo tiksla
                 diffElement.value = "+" + formatTime(diff);
                 diffElement.style.color = '#ef4444'; // Red
                 diffLabel.style.color = '#ef4444';
                 diffLabel.textContent = "Viršyta";
             } else if (diff < 0) {
-                // Sutaupe
                 diffElement.value = "-" + formatTime(Math.abs(diff));
                 diffElement.style.color = '#10b981'; // Green
                 diffLabel.style.color = '#10b981';
@@ -752,13 +786,19 @@
             if (a.type === 'Vidinė') badgeClass = 'badge-vidine';
             else if (a.type === 'Išorinė') badgeClass = 'badge-isorine';
 
+            let improvementText = '';
+            if (a.improvement && a.improvement !== 'Nieko') {
+                const icon = a.improvement === 'Konvertuoti' ? '🔄' : (a.improvement === 'Optimizuoti' ? '⚡' : '❌');
+                improvementText = `<div style="margin-top: 4px; font-size: 0.8rem; color: #93c5fd;">${icon} Patobulinimas: -${a.savedTime || 0}s</div>`;
+            }
+
             tr.innerHTML = `
                 <td>${index + 1}</td>
                 <td>${a.desc}</td>
                 <td><span class="badge ${badgeClass}">${a.type}</span></td>
                 <td style="font-weight: 600; font-variant-numeric: tabular-nums;">${formatTime(a.duration)}</td>
                 <td>${a.muda !== 'Nėra' ? a.muda : '-'}</td>
-                <td>${a.notes}</td>
+                <td>${a.notes} ${improvementText}</td>
                 <td style="white-space: nowrap;">
                     <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem; margin-right: 4px;" onclick="editAction(${index})" title="Redaguoti">
                         ✏️
@@ -791,9 +831,19 @@
         document.getElementById('edit-muda').value = a.muda;
         document.getElementById('edit-duration').value = a.duration;
         document.getElementById('edit-notes').value = a.notes;
+        document.getElementById('edit-improvement').value = a.improvement || 'Nieko';
+        document.getElementById('edit-saved-time').value = a.savedTime || 0;
         
         document.getElementById('edit-modal').style.display = 'flex';
     }
+
+    document.getElementById('edit-improvement').addEventListener('change', (e) => {
+        if (e.target.value === 'Pašalinti') {
+            document.getElementById('edit-saved-time').value = document.getElementById('edit-duration').value;
+        } else if (e.target.value === 'Nieko') {
+            document.getElementById('edit-saved-time').value = '0';
+        }
+    });
 
     document.getElementById('btn-save-edit').addEventListener('click', () => {
         if (currentEditIndex === -1) return;
@@ -803,6 +853,8 @@
         actions[currentEditIndex].muda = document.getElementById('edit-muda').value;
         actions[currentEditIndex].duration = parseInt(document.getElementById('edit-duration').value, 10) || 0;
         actions[currentEditIndex].notes = document.getElementById('edit-notes').value;
+        actions[currentEditIndex].improvement = document.getElementById('edit-improvement').value;
+        actions[currentEditIndex].savedTime = parseInt(document.getElementById('edit-saved-time').value, 10) || 0;
         
         document.getElementById('edit-modal').style.display = 'none';
         renderTable();
@@ -813,6 +865,8 @@
         const type = document.getElementById('action-type').value;
         const muda = 'Nežinoma'; // Priskiriama vėliau, analizės metu
         const notes = document.getElementById('action-notes').value.trim();
+        const improvement = 'Nieko';
+        const savedTime = 0;
         
         if (!desc) {
             alert('Prašome įvesti veiksmo aprašymą!');
@@ -832,7 +886,9 @@
             type,
             muda,
             notes,
-            duration: secondsElapsed
+            duration: secondsElapsed,
+            improvement,
+            savedTime
         });
 
         renderTable();
@@ -859,6 +915,8 @@
         const part = document.getElementById('info-part').value;
         const targetTime = document.getElementById('info-target-time').value;
         const realTime = document.getElementById('info-real-time').value;
+        const savedTime = document.getElementById('info-saved-time').value;
+        const idealTime = document.getElementById('info-ideal-time').value;
 
         let csvContent = '\uFEFF'; // UTF-8 BOM for Excel
         csvContent += `Data;${date}\n`;
@@ -866,14 +924,18 @@
         csvContent += `Operatorius;${operator}\n`;
         csvContent += `Detalė;${part}\n`;
         csvContent += `Duotas derinimo laikas (min.);${targetTime}\n`;
-        csvContent += `Realus derinimo laikas;${realTime}\n\n`;
+        csvContent += `Realus derinimo laikas;${realTime}\n`;
+        csvContent += `Sutaupymo potencialas;${savedTime}\n`;
+        csvContent += `Idealus laikas (To-Be);${idealTime}\n\n`;
 
-        csvContent += 'Nr.;Veiksmas;Tipas;Trukmė (s);Muda (Švaistymas);Pastabos\n';
+        csvContent += 'Nr.;Veiksmas;Tipas;Trukmė (s);Muda (Švaistymas);Patobulinimas;Sutaupytas laikas (s);Pastabos\n';
 
         actions.forEach((a, i) => {
             const desc = a.desc.replace(/"/g, '""');
             const notes = a.notes.replace(/"/g, '""');
-            csvContent += `${i+1};"${desc}";${a.type};${a.duration};"${a.muda}";"${notes}"\n`;
+            const imp = a.improvement || 'Nieko';
+            const sTime = a.savedTime || 0;
+            csvContent += `${i+1};"${desc}";${a.type};${a.duration};"${a.muda}";"${imp}";${sTime};"${notes}"\n`;
         });
 
         // Summary
@@ -980,6 +1042,15 @@
     // Load state on startup
     loadState();
     renderTable();
+
+    // Register Service Worker for PWA (Installable App)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(err => {
+                console.log('SW registration failed: ', err);
+            });
+        });
+    }
 
 </script>
 
