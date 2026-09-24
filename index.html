@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CNC DERINIMO SMED</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(255, 255, 255, 0.05);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --success-hover: #059669;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --warning: #f59e0b;
+            --internal-color: #ef4444;
+            --external-color: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 20px;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        header h1 {
+            font-weight: 600;
+            font-size: 1.8rem;
+            background: linear-gradient(to right, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        input[type="text"], input[type="date"], select {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 6px;
+            outline: none;
+            font-size: 0.95rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+        }
+
+        .action-tracker {
+            display: grid;
+            grid-template-columns: 1fr 250px;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .action-tracker {
+                grid-template-columns: 1fr;
+            }
+            .summary-cards {
+                grid-template-columns: 1fr !important;
+            }
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            .header-buttons {
+                flex-wrap: wrap;
+                width: 100%;
+            }
+            .header-buttons .btn {
+                flex: 1 1 45%;
+                font-size: 0.85rem;
+                padding: 8px 10px;
+                justify-content: center;
+            }
+            .time-comparison {
+                flex-direction: column !important;
+                max-width: 100% !important;
+                padding: 15px !important;
+                gap: 15px !important;
+            }
+            .time-comparison .form-group {
+                border-right: none !important;
+                border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+                padding-right: 0 !important;
+                padding-bottom: 15px !important;
+                width: 100% !important;
+            }
+            .time-comparison .form-group:last-child {
+                border-bottom: none !important;
+                padding-bottom: 0 !important;
+            }
+            
+            /* Lentelei */
+            .table-responsive {
+                margin: 0 -10px;
+            }
+            th, td {
+                padding: 10px 8px;
+                font-size: 0.85rem;
+            }
+            body {
+                padding: 10px;
+            }
+            .panel {
+                padding: 15px;
+            }
+        }
+
+        .timer-display {
+            font-size: 3rem;
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 2px;
+            margin: 10px 0;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255,255,255,0.2);
+        }
+
+        .btn {
+            cursor: pointer;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: white;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary { background: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); }
+        
+        .btn-success { background: var(--success); }
+        .btn-success:hover { background: var(--success-hover); }
+        
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: var(--danger-hover); }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+        }
+        .btn-outline:hover { background: rgba(255,255,255,0.1); }
+
+        .timer-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: rgba(0, 0, 0, 0.2);
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-vidine { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-isorine { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-nezinoma { background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .summary-card {
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .summary-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-top: 5px;
+        }
+
+        .val-internal { color: #fca5a5; }
+        .val-external { color: #6ee7b7; }
+        .val-total { color: #93c5fd; }
+
+        /* Animation */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        .timer-running {
+            color: var(--success) !important;
+            animation: pulse 2s infinite;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                padding: 0;
+            }
+            .container {
+                max-width: 100%;
+                margin: 0;
+            }
+            header h1 {
+                -webkit-text-fill-color: black;
+                background: none;
+                color: black;
+            }
+            .panel {
+                background: white !important;
+                border: 1px solid #ccc !important;
+                box-shadow: none !important;
+                page-break-inside: avoid;
+            }
+            input[type="text"], input[type="date"], input[type="number"], select {
+                background: white !important;
+                color: black !important;
+                border: 1px solid #ccc !important;
+            }
+            .header-buttons, .action-tracker {
+                display: none !important;
+            }
+            /* Hide the last column (action buttons) */
+            th:last-child, td:last-child {
+                display: none !important;
+            }
+            .badge {
+                border: 1px solid #000 !important;
+            }
+            .badge-vidine { background: #fee2e2 !important; color: #b91c1c !important; }
+            .badge-isorine { background: #d1fae5 !important; color: #047857 !important; }
+            .badge-nezinoma { background: #f1f5f9 !important; color: #334155 !important; }
+            
+            .summary-card {
+                background: #f8fafc !important;
+                border: 1px solid #ccc !important;
+                color: black !important;
+            }
+            .val-internal { color: #b91c1c !important; }
+            .val-external { color: #047857 !important; }
+            .val-total { color: #1d4ed8 !important; }
+
+            .time-comparison {
+                background: white !important;
+                border: 1px solid #ccc !important;
+            }
+            .time-comparison label { color: black !important; }
+            .time-comparison input { color: black !important; border: none !important; }
+            
+            table {
+                border: 1px solid #ccc;
+            }
+            th {
+                background: #f1f5f9 !important;
+                color: black !important;
+            }
+            th, td {
+                border: 1px solid #ccc !important;
+            }
+            
+            .panel { margin-bottom: 20px; }
+            
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>CNC DERINIMO SMED</h1>
+        <div class="header-buttons" style="display: flex; gap: 10px;">
+            <button class="btn btn-outline" id="btn-new" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                Naujas
+            </button>
+            <input type="file" id="file-import" accept=".csv" style="display: none;">
+            <button class="btn btn-outline" id="btn-import-trigger" style="color: #fcd34d; border-color: rgba(252, 211, 77, 0.3);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                Importuoti CSV
+            </button>
+            <button class="btn btn-outline" id="btn-print" style="color: #6ee7b7; border-color: rgba(110, 231, 183, 0.3);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                Spausdinti / PDF
+            </button>
+            <button class="btn btn-outline" id="btn-export">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Eksportuoti CSV
+            </button>
+        </div>
+    </header>
+
+    <div class="panel info-grid">
+        <div class="form-group">
+            <label>Data</label>
+            <input type="date" id="info-date">
+        </div>
+        <div class="form-group">
+            <label>Staklės / Mašina</label>
+            <input type="text" id="info-machine" placeholder="Pvz. CNC-01">
+        </div>
+        <div class="form-group">
+            <label>Operatorius</label>
+            <input type="text" id="info-operator" placeholder="Vardas Pavardė">
+        </div>
+        <div class="form-group">
+            <label>Gaminama detalė</label>
+            <input type="text" id="info-part" placeholder="Detalės Nr. arba Pavadinimas">
+        </div>
+    </div>
+
+    <div class="panel time-comparison" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 30px; max-width: fit-content; margin: 0 auto; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.15); padding: 15px 40px; border-radius: 16px;">
+        <div class="form-group" style="text-align: center; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 30px;">
+            <label style="font-size: 0.9rem; color: #fcd34d; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Tikslas (min.)</label>
+            <input type="number" id="info-target-time" placeholder="45" style="font-size: 2rem; font-weight: 700; text-align: center; margin-top: 5px; color: #fcd34d; background: transparent; border: none; box-shadow: none; width: 120px; outline: none;">
+        </div>
+        <div class="form-group" style="text-align: center; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 30px;">
+            <label style="font-size: 0.9rem; color: #6ee7b7; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Faktas</label>
+            <input type="text" id="info-real-time" readonly placeholder="00:00" style="font-size: 2rem; font-weight: 700; text-align: center; margin-top: 5px; color: #6ee7b7; background: transparent; border: none; box-shadow: none; font-variant-numeric: tabular-nums; width: 120px; outline: none;">
+        </div>
+        <div class="form-group" style="text-align: center;">
+            <label style="font-size: 0.9rem; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Skirtumas</label>
+            <input type="text" id="info-diff-time" readonly placeholder="-" style="font-size: 2rem; font-weight: 700; text-align: center; margin-top: 5px; color: #9ca3af; background: transparent; border: none; box-shadow: none; font-variant-numeric: tabular-nums; width: 150px; outline: none;">
+        </div>
+    </div>
+
+    <div class="panel action-tracker">
+        <div class="action-inputs">
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>1. Veiksmo aprašymas</label>
+                <input type="text" id="action-desc" placeholder="Ką šiuo metu daro operatorius?">
+            </div>
+            
+            <div class="info-grid" style="margin-bottom: 15px;">
+                <div class="form-group">
+                    <label>Tipas (2 etapas)</label>
+                    <select id="action-type">
+                        <option value="Vidinė" selected>🛑 Vidinė (Staklės STOVI / nedirba)</option>
+                        <option value="Išorinė">🟢 Išorinė (Staklės tuo metu DIRBA)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Pastabos / Idėjos</label>
+                <textarea id="action-notes" rows="2" placeholder="Ką pastebėjote? Kodėl taip daro? (Galima pildyti vėliau)" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 12px; border-radius: 6px; outline: none; font-size: 0.95rem; font-family: 'Inter', sans-serif; resize: vertical;"></textarea>
+            </div>
+        </div>
+
+        <div class="timer-section">
+            <label style="display:block; text-align:center;">2. Laiko matavimas</label>
+            <div class="timer-display" id="timer-display">00:00</div>
+            
+            <div class="timer-controls">
+                <button class="btn btn-success" id="btn-start-stop">Pradėti</button>
+                <button class="btn btn-outline" id="btn-reset">Išvalyti</button>
+                <button class="btn btn-primary full-width" id="btn-add">Pridėti veiksmą</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="summary-cards">
+        <div class="summary-card">
+            <label>Bendras Vidinio Derinimo Laikas</label>
+            <div class="summary-value val-internal" id="sum-internal">00:00</div>
+        </div>
+        <div class="summary-card">
+            <label>Bendras Išorinio Derinimo Laikas</label>
+            <div class="summary-value val-external" id="sum-external">00:00</div>
+        </div>
+        <div class="summary-card">
+            <label>Visas Derinimo Laikas</label>
+            <div class="summary-value val-total" id="sum-total">00:00</div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2 style="font-size: 1.2rem; margin-bottom: 15px; font-weight: 500;">Užfiksuoti veiksmai</h2>
+        <div class="table-responsive">
+            <table id="actions-table">
+                <thead>
+                    <tr>
+                        <th width="40">Nr.</th>
+                        <th>Veiksmas</th>
+                        <th width="100">Tipas</th>
+                        <th width="80">Trukmė</th>
+                        <th width="150">Švaistymas (Muda)</th>
+                        <th>Pastabos / Idėjos</th>
+                        <th width="60"></th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Dinaminis turinys -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Edit Modal -->
+<div id="edit-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(5px);">
+    <div class="panel" style="width:90%; max-width:500px; border: 1px solid var(--primary);">
+        <h2 style="margin-bottom: 15px; font-size: 1.3rem;">Redaguoti veiksmą</h2>
+        <div class="form-group" style="margin-bottom: 10px;">
+            <label>Veiksmo aprašymas</label>
+            <input type="text" id="edit-desc">
+        </div>
+        <div class="form-group" style="margin-bottom: 10px;">
+            <label>Tipas</label>
+            <select id="edit-type">
+                <option value="Vidinė">🛑 Vidinė (Staklės STOVI)</option>
+                <option value="Išorinė">🟢 Išorinė (Staklės DIRBA)</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 10px;">
+            <label>Muda (Švaistymas)</label>
+            <select id="edit-muda">
+                <option value="Nežinoma">❓ Nežinoma / Nespėjau įvertinti</option>
+                <option value="Nėra">✅ Nėra (Viskas sklandu)</option>
+                <option value="⏳ Laukimas">⏳ Laukimas</option>
+                <option value="🚶 Judėjimas">🚶 Judėjimas</option>
+                <option value="🚚 Transportavimas">🚚 Transportavimas</option>
+                <option value="🔍 Paieška">🔍 Paieška</option>
+                <option value="❌ Taisymas">❌ Taisymas/Valymas</option>
+                <option value="⚙️ Perteklius">⚙️ Perteklinis darbas</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 10px;">
+            <label>Trukmė (sekundėmis)</label>
+            <input type="number" id="edit-duration">
+        </div>
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label>Pastabos</label>
+            <input type="text" id="edit-notes">
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-primary" id="btn-save-edit" style="flex:1;">Išsaugoti</button>
+            <button class="btn btn-outline" onclick="document.getElementById('edit-modal').style.display='none'" style="flex:1;">Atšaukti</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Set today's date
+    document.getElementById('info-date').valueAsDate = new Date();
+    
+    // Auto-save logic
+    function saveState() {
+        try {
+            const state = {
+                date: document.getElementById('info-date').value,
+                machine: document.getElementById('info-machine').value,
+                operator: document.getElementById('info-operator').value,
+                part: document.getElementById('info-part').value,
+                targetTime: document.getElementById('info-target-time').value,
+                actions: actions
+            };
+            localStorage.setItem('smed_state', JSON.stringify(state));
+        } catch (e) {
+            console.warn('Nepavyko išsaugoti į localStorage:', e);
+        }
+    }
+
+    function loadState() {
+        let saved = null;
+        try {
+            saved = localStorage.getItem('smed_state');
+        } catch (e) {
+            console.warn('Nepavyko pasiekti localStorage:', e);
+            return;
+        }
+
+        if (saved) {
+            try {
+                const state = JSON.parse(saved);
+                if (state.date) document.getElementById('info-date').value = state.date;
+                if (state.machine) document.getElementById('info-machine').value = state.machine;
+                if (state.operator) document.getElementById('info-operator').value = state.operator;
+                if (state.part) document.getElementById('info-part').value = state.part;
+                if (state.targetTime) document.getElementById('info-target-time').value = state.targetTime;
+                
+                if (state.actions && Array.isArray(state.actions)) {
+                    actions = state.actions;
+                }
+            } catch (e) {
+                console.error('Failed to load state', e);
+            }
+        }
+    }
+
+    ['info-date', 'info-machine', 'info-operator', 'info-part', 'info-target-time'].forEach(id => {
+        document.getElementById(id).addEventListener('input', saveState);
+    });
+
+    document.getElementById('btn-new').addEventListener('click', () => {
+        if(confirm('Ar tikrai norite išvalyti visus duomenis ir pradėti iš naujo? Nesiųsti duomenys bus prarasti.')) {
+            actions = [];
+            document.getElementById('info-machine').value = '';
+            document.getElementById('info-operator').value = '';
+            document.getElementById('info-part').value = '';
+            document.getElementById('info-target-time').value = '';
+            document.getElementById('info-date').valueAsDate = new Date();
+            renderTable();
+            try {
+                localStorage.removeItem('smed_state');
+            } catch(e) {}
+            document.getElementById('btn-reset').click();
+        }
+    });
+
+    // Add listener to target time so difference updates immediately when changed
+    document.getElementById('info-target-time').addEventListener('input', () => {
+        updateSummary();
+    });
+
+    // Timer Logic
+    let timerInterval = null;
+    let secondsElapsed = 0;
+    let isRunning = false;
+
+    const display = document.getElementById('timer-display');
+    const btnStartStop = document.getElementById('btn-start-stop');
+    const btnReset = document.getElementById('btn-reset');
+    
+    function formatTime(totalSeconds) {
+        const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+        const s = (totalSeconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    function updateDisplay() {
+        display.textContent = formatTime(secondsElapsed);
+    }
+
+    btnStartStop.addEventListener('click', () => {
+        if (isRunning) {
+            // Stop
+            clearInterval(timerInterval);
+            isRunning = false;
+            btnStartStop.textContent = 'Tęsti';
+            btnStartStop.classList.remove('btn-danger');
+            btnStartStop.classList.add('btn-success');
+            display.classList.remove('timer-running');
+        } else {
+            // Start
+            isRunning = true;
+            btnStartStop.textContent = 'Stabdyti';
+            btnStartStop.classList.remove('btn-success');
+            btnStartStop.classList.add('btn-danger');
+            display.classList.add('timer-running');
+            
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                updateDisplay();
+            }, 1000);
+        }
+    });
+
+    btnReset.addEventListener('click', () => {
+        clearInterval(timerInterval);
+        isRunning = false;
+        secondsElapsed = 0;
+        updateDisplay();
+        btnStartStop.textContent = 'Pradėti';
+        btnStartStop.classList.remove('btn-danger');
+        btnStartStop.classList.add('btn-success');
+        display.classList.remove('timer-running');
+    });
+
+
+    // Data Logic
+    let actions = [];
+
+    const btnAdd = document.getElementById('btn-add');
+    const tbody = document.getElementById('table-body');
+
+    function updateSummary() {
+        let internal = 0;
+        let external = 0;
+        let unknown = 0;
+        
+        actions.forEach(a => {
+            if (a.type === 'Vidinė') internal += a.duration;
+            else if (a.type === 'Išorinė') external += a.duration;
+            else unknown += a.duration;
+        });
+
+        document.getElementById('sum-internal').textContent = formatTime(internal);
+        document.getElementById('sum-external').textContent = formatTime(external);
+        const total = internal + external + unknown;
+        document.getElementById('sum-total').textContent = formatTime(total);
+        document.getElementById('info-real-time').value = formatTime(total);
+
+        // Calculate Difference
+        const targetInput = document.getElementById('info-target-time').value;
+        const diffElement = document.getElementById('info-diff-time');
+        const diffLabel = diffElement.previousElementSibling;
+        
+        if (targetInput) {
+            const targetSeconds = parseFloat(targetInput) * 60;
+            const diff = total - targetSeconds;
+            
+            if (diff > 0) {
+                // Virsijo tiksla
+                diffElement.value = "+" + formatTime(diff);
+                diffElement.style.color = '#ef4444'; // Red
+                diffLabel.style.color = '#ef4444';
+                diffLabel.textContent = "Viršyta";
+            } else if (diff < 0) {
+                // Sutaupe
+                diffElement.value = "-" + formatTime(Math.abs(diff));
+                diffElement.style.color = '#10b981'; // Green
+                diffLabel.style.color = '#10b981';
+                diffLabel.textContent = "Sutaupyta";
+            } else {
+                diffElement.value = "00:00";
+                diffElement.style.color = '#9ca3af'; // Gray
+                diffLabel.style.color = '#9ca3af';
+                diffLabel.textContent = "Lygiai";
+            }
+        } else {
+            diffElement.value = "-";
+            diffElement.style.color = '#9ca3af';
+            diffLabel.style.color = '#9ca3af';
+            diffLabel.textContent = "Skirtumas";
+        }
+    }
+
+    function renderTable() {
+        tbody.innerHTML = '';
+        actions.forEach((a, index) => {
+            const tr = document.createElement('tr');
+            
+            let badgeClass = 'badge-nezinoma';
+            if (a.type === 'Vidinė') badgeClass = 'badge-vidine';
+            else if (a.type === 'Išorinė') badgeClass = 'badge-isorine';
+
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${a.desc}</td>
+                <td><span class="badge ${badgeClass}">${a.type}</span></td>
+                <td style="font-weight: 600; font-variant-numeric: tabular-nums;">${formatTime(a.duration)}</td>
+                <td>${a.muda !== 'Nėra' ? a.muda : '-'}</td>
+                <td>${a.notes}</td>
+                <td style="white-space: nowrap;">
+                    <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem; margin-right: 4px;" onclick="editAction(${index})" title="Redaguoti">
+                        ✏️
+                    </button>
+                    <button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.8rem;" onclick="deleteAction(${index})" title="Ištrinti">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        updateSummary();
+        saveState();
+    }
+
+    window.deleteAction = function(index) {
+        if(confirm('Ar tikrai norite ištrinti šį veiksmą?')) {
+            actions.splice(index, 1);
+            renderTable();
+        }
+    }
+
+    let currentEditIndex = -1;
+
+    window.editAction = function(index) {
+        currentEditIndex = index;
+        const a = actions[index];
+        document.getElementById('edit-desc').value = a.desc;
+        document.getElementById('edit-type').value = a.type;
+        document.getElementById('edit-muda').value = a.muda;
+        document.getElementById('edit-duration').value = a.duration;
+        document.getElementById('edit-notes').value = a.notes;
+        
+        document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    document.getElementById('btn-save-edit').addEventListener('click', () => {
+        if (currentEditIndex === -1) return;
+        
+        actions[currentEditIndex].desc = document.getElementById('edit-desc').value;
+        actions[currentEditIndex].type = document.getElementById('edit-type').value;
+        actions[currentEditIndex].muda = document.getElementById('edit-muda').value;
+        actions[currentEditIndex].duration = parseInt(document.getElementById('edit-duration').value, 10) || 0;
+        actions[currentEditIndex].notes = document.getElementById('edit-notes').value;
+        
+        document.getElementById('edit-modal').style.display = 'none';
+        renderTable();
+    });
+
+    btnAdd.addEventListener('click', () => {
+        const desc = document.getElementById('action-desc').value.trim();
+        const type = document.getElementById('action-type').value;
+        const muda = 'Nežinoma'; // Priskiriama vėliau, analizės metu
+        const notes = document.getElementById('action-notes').value.trim();
+        
+        if (!desc) {
+            alert('Prašome įvesti veiksmo aprašymą!');
+            document.getElementById('action-desc').focus();
+            return;
+        }
+
+        if (secondsElapsed === 0) {
+            if(!confirm('Laikmatis rodo 00:00. Ar vis tiek norite pridėti?')) {
+                return;
+            }
+        }
+
+        // Add to array
+        actions.push({
+            desc,
+            type,
+            muda,
+            notes,
+            duration: secondsElapsed
+        });
+
+        renderTable();
+
+        // Reset form
+        document.getElementById('action-desc').value = '';
+        document.getElementById('action-type').value = 'Vidinė';
+        document.getElementById('action-notes').value = '';
+        document.getElementById('action-desc').focus();
+        document.getElementById('btn-reset').click(); // resets timer
+    });
+
+    // CSV Export
+    document.getElementById('btn-export').addEventListener('click', () => {
+        if (actions.length === 0) {
+            alert('Nėra duomenų eksportavimui.');
+            return;
+        }
+
+        // Get info
+        const date = document.getElementById('info-date').value;
+        const machine = document.getElementById('info-machine').value;
+        const operator = document.getElementById('info-operator').value;
+        const part = document.getElementById('info-part').value;
+        const targetTime = document.getElementById('info-target-time').value;
+        const realTime = document.getElementById('info-real-time').value;
+
+        let csvContent = '\uFEFF'; // UTF-8 BOM for Excel
+        csvContent += `Data;${date}\n`;
+        csvContent += `Staklės;${machine}\n`;
+        csvContent += `Operatorius;${operator}\n`;
+        csvContent += `Detalė;${part}\n`;
+        csvContent += `Duotas derinimo laikas (min.);${targetTime}\n`;
+        csvContent += `Realus derinimo laikas;${realTime}\n\n`;
+
+        csvContent += 'Nr.;Veiksmas;Tipas;Trukmė (s);Muda (Švaistymas);Pastabos\n';
+
+        actions.forEach((a, i) => {
+            const desc = a.desc.replace(/"/g, '""');
+            const notes = a.notes.replace(/"/g, '""');
+            csvContent += `${i+1};"${desc}";${a.type};${a.duration};"${a.muda}";"${notes}"\n`;
+        });
+
+        // Summary
+        let internal = 0, external = 0;
+        actions.forEach(a => {
+            if (a.type === 'Vidinė') internal += a.duration;
+            else external += a.duration;
+        });
+
+        csvContent += `\nBendras Vidinio laikas (s);${internal}\n`;
+        csvContent += `Bendras Išorinio laikas (s);${external}\n`;
+        csvContent += `Visas laikas (s);${internal + external}\n`;
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const fileNameSafeDate = date || 'data';
+        const fileNameSafeMachine = machine ? machine.replace(/[^a-z0-9]/gi, '_') : 'stakles';
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `SMED_${fileNameSafeMachine}_${fileNameSafeDate}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+
+    // Print
+    document.getElementById('btn-print').addEventListener('click', () => {
+        window.print();
+    });
+
+    // CSV Import
+    document.getElementById('btn-import-trigger').addEventListener('click', () => {
+        document.getElementById('file-import').click();
+    });
+
+    document.getElementById('file-import').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const content = e.target.result;
+            const lines = content.split(/\r?\n/);
+            
+            try {
+                const getValue = (line) => {
+                    if (!line) return '';
+                    const parts = line.split(';');
+                    if (parts.length > 1) {
+                        let val = parts[1];
+                        if (val.startsWith(',')) val = val.substring(1); // Support old buggy format
+                        return val;
+                    }
+                    return '';
+                };
+
+                document.getElementById('info-date').value = getValue(lines[0]);
+                document.getElementById('info-machine').value = getValue(lines[1]);
+                document.getElementById('info-operator').value = getValue(lines[2]);
+                document.getElementById('info-part').value = getValue(lines[3]);
+                document.getElementById('info-target-time').value = getValue(lines[4]);
+                
+                let tableStartIndex = 7;
+                for (let i = 0; i < Math.min(15, lines.length); i++) {
+                    if (lines[i].includes('Veiksmas') && lines[i].includes('Trukmė')) {
+                        tableStartIndex = i + 1;
+                        break;
+                    }
+                }
+                
+                actions = [];
+                const regex = /;(?=(?:(?:[^"]*"){2})*[^"]*$)/; // Split by ; ignoring ; inside quotes
+                for (let i = tableStartIndex; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    if (line.startsWith('Bendras') || line.startsWith('Visas')) break;
+                    
+                    const parts = line.split(regex).map(p => p.replace(/^"|"$/g, '').replace(/""/g, '"'));
+                    
+                    if (parts.length >= 6) {
+                        actions.push({
+                            desc: parts[1],
+                            type: parts[2],
+                            duration: parseInt(parts[3], 10) || 0,
+                            muda: parts[4],
+                            notes: parts[5] || ''
+                        });
+                    }
+                }
+                
+                renderTable();
+                e.target.value = ''; // Reset input
+                alert('Duomenys sėkmingai atkurti iš CSV failo!');
+            } catch (err) {
+                alert('Klaida importuojant failą. Galbūt tai ne tas failas? Klaida: ' + err.message);
+            }
+        };
+        reader.readAsText(file, 'UTF-8');
+    });
+
+    // Load state on startup
+    loadState();
+    renderTable();
+
+</script>
+
+</body>
+</html>
